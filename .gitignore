@@ -1,0 +1,22 @@
+# macOS system files:
+.DS_Store
+
+# Local learning DB:database:
+groups.json
+
+# Python bytecode & environments:
+__pycache__/
+*.pyc
+
+#Virtual environments:
+.venv/
+venv/
+
+#IDEs:
+.idea/
+.vscode/
+
+#Environments:
+.env
+.env.*
+
