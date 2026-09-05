@@ -1,86 +1,160 @@
 from fastapi import FastAPI, Response, status
-from pydantic import BaseModel
-import json
-# from typing import List
+from pydantic import BaseModel, EmailStr
+import os
+from dotenv import load_dotenv
+import psycopg
+from psycopg.rows import dict_row
+import time
 
 
 app = FastAPI()
 
 
-Datafile = "groups.json"
+class UserCreate(BaseModel):
+    user_name: str
+    email: EmailStr
 
 
 class GroupCreate(BaseModel):
     group_name: str
+    created_by: int
+
+load_dotenv()
+db_name = os.getenv("DB_NAME")
+db_user = os.getenv("DB_USER")
+db_password = os.getenv("DB_PASSWORD")
+if not db_name or not db_user or not db_password:
+    raise RuntimeError("Database environment variables are missing")
 
 
-def load_group():
+while True:
     try:
-        with open(Datafile, "r") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        return []
+        conn = psycopg.connect(
+            host="localhost",
+            dbname=db_name,
+            user=db_user,
+            password=db_password,
+            row_factory=dict_row
+        )
+        cursor = conn.cursor()
+        print("Database connection was successful")
+        break
 
-
-def save_group(groups):
-    with open(Datafile, "w") as f:
-        json.dump(groups, f)
+    except Exception as error:
+        print("Connecting to Database failed")
+        print("Error:", error)
+        time.sleep(2)
 
 
 @app.get("/")
 def root():
-    return {"Message": "Bill Splitter API"}
+    return {"Message": "Fair Share API Is Running"}
 
 
+@app.get("/users")
+def get_users():
+    cursor.execute("SELECT * FROM users;")
+    users = cursor.fetchall()
+
+    return {"Users": users}
+
+
+@app.post("/users", status_code=status.HTTP_201_CREATED)
+def create_user(user: UserCreate):
+    try:
+        cursor.execute(
+            "INSERT INTO users (username, email) VALUES (%s, %s) RETURNING *",
+            (user.user_name, user.email)
+        )
+        user_data = cursor.fetchone()
+        conn.commit()
+        return user_data
+    except Exception as Error:
+        conn.rollback()
+        print(Error)
+
+
+@app.put("/users/{user_id}")
+def update_user(user_id: int, user: UserCreate):
+    try:
+        cursor.execute(
+            "UPDATE users SET username = %s, email = %s WHERE id = %s RETURNING *",
+            (user.user_name, user.email, user_id)
+        )
+        updated_user = cursor.fetchone()
+        conn.commit()
+        print({"Message": "User Updated"})
+        return updated_user
+    except Exception as Error:
+        conn.rollback()
+        print(Error)
+
+
+@app.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_user(user_id: int):
+    try:
+        cursor.execute(
+            "DELETE FROM users WHERE id = %s",
+            (user_id,)
+        )
+        conn.commit()
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+    except Exception as Error:
+        conn.rollback()
+        print(Error)
+
+
+## Groups:
 @app.get("/groups")
-def get_group():
-    return load_group()
+def get_groups():
+    cursor.execute(
+        "SELECT * FROM groups;"
+    )
+    groups = cursor.fetchall()
+
+    return {"Groups": groups}
 
 
-@app.post("/groups", status_code=status.HTTP_201_CREATED)
-def create_group(userdata: GroupCreate):
-    groups = load_group()
-
-    next_id = max((item["group_id"] for item in groups), default=0) + 1
-    group_data = {
-        "group_name": userdata.group_name,
-        "group_id": next_id
-    }
-
-    groups.append(group_data)
-    save_group(groups)
-
-    return group_data
-
-
-@app.delete("/groups/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_group(item_id: int, response: Response):
-    groups = load_group()
-    original_len = len(groups)
-    groups = [item for item in groups if item["group_id"] != item_id]
-    if len(groups) == original_len:
-        response.status_code = status.HTTP_404_NOT_FOUND
-        return {"Message": "Group Not Found"}
-
-    save_group(groups)
-
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+@app.post("/groups", status_code= status.HTTP_201_CREATED)
+def create_group(group: GroupCreate):
+    try:
+        cursor.execute(
+            "INSERT INTO groups (group_name, created_by) VALUES (%s, %s) RETURNING *",
+            (group.group_name, group.created_by)
+        )
+        group_data = cursor.fetchone()
+        conn.commit()
+        return group_data
+    except Exception as Error:
+        conn.rollback()
+        print(Error)
 
 
-@app.put("/groups/{item_id}")
-def update_group(item_id: int, userdata: GroupCreate, response: Response):
-    groups = load_group()
-    original_len = len(groups)
-    groups = [item for item in groups if item["group_id"] != item_id]
-    if len(groups) == original_len:
-        response.status_code = status.HTTP_404_NOT_FOUND
-        return {"Message": "Group Not Found"}
+@app.put("/groups/{group_id}")
+def update_group(group_id: int, group: GroupCreate):
+    try:
+        cursor.execute(
+            "UPDATE groups SET group_name = %s WHERE id = %s RETURNING *",
+            (group.group_name, group_id)
+        )
+        updated_group_data = cursor.fetchone()
+        conn.commit()
+        return updated_group_data
+    except Exception as Error:
+        conn.rollback()
+        print(Error)
 
-    group_data = {
-        "group_id" :item_id, "group_name": userdata.group_name
-    }
 
-    groups.append(group_data)
-    save_group(groups)
-    return {"Message": "Group Updated"}
+@app.delete("/groups/{group_id}", status_code= status.HTTP_204_NO_CONTENT)
+def delete_group(group_id: int):
+    try:
+        cursor.execute(
+            "DELETE FROM groups WHERE id = %s RETURNING *",
+            (group_id,)
+        )
+        conn.commit()
+        return Response(status_code= status.HTTP_204_NO_CONTENT)
+    except Exception as Error:
+        conn.rollback()
+        print(Error)
 
