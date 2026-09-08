@@ -23,7 +23,6 @@ class GroupMemberCreate(BaseModel):
 
 
 class ExpenseCreate(BaseModel):
-    id: int
     group_id: int
     description: str
     total_amount: int
@@ -170,13 +169,13 @@ def add_group_member(group_member: GroupMemberCreate):
                 raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Group member already exists")
 
 
-@app.delete("/group_members/delete_member", status_code=status.HTTP_204_NO_CONTENT)
-def delete_member(member:GroupMemberCreate):
+@app.delete("/group_members/{group_id}/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_member(group_id: int, user_id: int):
     with my_pool.connection() as conn:
         with conn.cursor() as cursor:
             cursor.execute(
                 "DELETE FROM group_members WHERE group_id = %s AND user_id = %s RETURNING *",
-                (member.group_id, member.user_id)
+                (group_id, user_id)
             )
             deleted_member = cursor.fetchone()
             if not deleted_member:
@@ -194,26 +193,36 @@ def get_expenses():
             return {"Expenses": expenses}
 
 
-@app.post("/create_expense/{id}", status_code=status.HTTP_201_CREATED)
-def create_expense(id:int, expense:ExpenseCreate):
+@app.post("/expenses", status_code=status.HTTP_201_CREATED)
+def create_expense(expense:ExpenseCreate):
     with my_pool.connection() as conn:
         with conn.cursor() as cursor:
-            cursor.execute(
-                "INSERT INTO expenses WHERE id = %s, group_id = %s, description = %s, total_amount = %s, created_by = %s RETURNING *",
-                (id, expense.group_id, expense.description, expense.total_amount, expense.created_by)
-            )
-            expense = cursor.fetchone()
-            if not expense:
-                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Details not found")
+            # Checking if group exists
+            cursor.execute("SELECT 1 FROM groups WHERE id = %s",
+            (expense.group_id,))
+            if not cursor.fetchone():
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Group not found")
 
+            #Checking if user exists
+            cursor.execute("SELECT 1 FROM users WHERE id = %s",
+            (expense.created_by,))
+            if not cursor.fetchone():
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+            cursor.execute(
+                "INSERT INTO expenses(group_id, description, total_amount, created_by) VALUES (%s, %s, %s, %s) RETURNING *",
+                (expense.group_id, expense.description, expense.total_amount, expense.created_by)
+            )
+            expense_data = cursor.fetchone()
+            return expense_data
 
 @app.put("/update_expense/{id}")
 def update_expense(id: int, expense:ExpenseCreate):
     with my_pool.connection() as conn:
         with conn.cursor() as cursor:
             cursor.execute(
-                "UPDATE expenses SET group_id = %s, description = %s, total_amount = %s, created_by = %s WHERE id = %s, RETURNING *",
-                (id, expense.group_id, expense.description, expense.total_amount, expense.created_by)
+                "UPDATE expenses SET group_id = %s, description = %s, total_amount = %s, created_by = %s WHERE id = %s RETURNING *",
+                (expense.group_id, expense.description, expense.total_amount, expense.created_by, id)
             )
             updated_expense = cursor.fetchone()
             if not updated_expense:
@@ -228,11 +237,43 @@ def delete_expense(id: int):
     with my_pool.connection() as conn:
         with conn.cursor() as cursor:
             cursor.execute(
-                "DELETE expense WHERE id = %s RETURNING *",
+                "DELETE FROM expenses WHERE id = %s RETURNING id",
                 (id,)
             )
             deleted_expense = cursor.fetchone()
             if not deleted_expense:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Expense ID not found")
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Expense not found")
 
+
+
+## Expense Splits
+@app.get("/expense_splits")
+def get_expense_splits():
+    with my_pool.connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT * FROM expense_splits;")
+            expense_splits = cursor.fetchall()
+            return {"Expense Splits": expense_splits}
+
+
+
+## Expense Payers
+@app.get("/expense_payers")
+def get_expense_payers():
+    with my_pool.connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT * FROM expense_payers;")
+            expense_payers = cursor.fetchall()
+            return {"Expense Payers": expense_payers}
+
+
+
+## Settle ups
+@app.get("/settle_ups")
+def get_settle_ups():
+    with my_pool.connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT * FROM settle_ups;")
+            settle_ups = cursor.fetchall()
+            return {"Settle Ups": settle_ups}
 
