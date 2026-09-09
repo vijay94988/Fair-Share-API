@@ -1,7 +1,7 @@
-from dotenv import load_dotenv
 import os
-from psycopg_pool import ConnectionPool
 
+from dotenv import load_dotenv
+from psycopg_pool import ConnectionPool
 
 load_dotenv()
 

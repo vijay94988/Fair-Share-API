@@ -3,7 +3,7 @@ from psycopg.errors import UniqueViolation
 from psycopg.rows import dict_row
 
 from app.database import my_pool
-from app.models.schemas import 
+from app.models.schemas import ExpenseSplitCreate
 
 router = APIRouter()
 
@@ -14,7 +14,7 @@ def get_expense_splits():
             expense_splits = cursor.fetchall()
             return {"Expense Splits": expense_splits}
 
-@router.get("/expense_splits/{id}")
+@router.get("/expense_splits/{id}", )
 def get_split(id: int):
     with my_pool.connection() as conn, conn.cursor(row_factory=dict_row) as cursor:
             cursor.execute("SELECT * FROM expense_splits WHERE expense_id = %s", (id,))

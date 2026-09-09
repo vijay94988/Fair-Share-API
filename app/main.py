@@ -1,6 +1,14 @@
 from fastapi import FastAPI
 
-from app.routers import groups, users, group_members, expenses, expense_splits, expense_payers, settle_ups
+from app.routers import (
+    expense_payers,
+    expense_splits,
+    expenses,
+    group_members,
+    groups,
+    settle_ups,
+    users,
+)
 
 app = FastAPI()
 

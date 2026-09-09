@@ -5,7 +5,6 @@ from psycopg.rows import dict_row
 from app.database import my_pool
 from app.models.schemas import GroupMemberCreate
 
-
 router = APIRouter()
 
 @router.get("/group_members")
