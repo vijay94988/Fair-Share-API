@@ -9,14 +9,14 @@ router = APIRouter()
 
 @router.get("/group_members")
 def get_group_members():
-    with my_pool.connection() as conn, conn.cursor(row_factory=dict_row) as cursor:
+    with my_pool.connection() as conn, conn.cursor() as cursor:
             cursor.execute("SELECT * FROM group_members;")
             group_members = cursor.fetchall()
             return {"Group Members": group_members}
 
 @router.get("/group_members/{id}")
 def get_member(id: int):
-    with my_pool.connection() as conn, conn.cursor(row_factory=dict_row) as cursor:
+    with my_pool.connection() as conn, conn.cursor() as cursor:
             cursor.execute("SELECT * FROM group_members WHERE group_id = %s", (id,))
             member = cursor.fetchone()
             if not member:
@@ -26,7 +26,7 @@ def get_member(id: int):
 
 @router.post("/group_members", status_code=status.HTTP_201_CREATED)
 def add_group_member(group_member: GroupMemberCreate):
-    with my_pool.connection() as conn, conn.cursor(row_factory=dict_row) as cursor:
+    with my_pool.connection() as conn, conn.cursor() as cursor:
             try:
                 cursor.execute(
                     "INSERT INTO group_members(group_id, user_id) VALUES (%s, %s) RETURNING *",
@@ -40,7 +40,7 @@ def add_group_member(group_member: GroupMemberCreate):
 
 @router.delete("/groups/{group_id}/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_member(group_id: int, user_id: int):
-    with my_pool.connection() as conn, conn.cursor(row_factory=dict_row) as cursor:
+    with my_pool.connection() as conn, conn.cursor() as cursor:
             cursor.execute(
                 "DELETE FROM group_members WHERE group_id = %s AND user_id = %s RETURNING *",
                 (group_id, user_id)

@@ -22,6 +22,10 @@ class ExpenseCreate(BaseModel):
     total_amount: int
     created_by: int
 
+class PayerInput(BaseModel):
+    user_id: int
+    amount_paid: int
+
 
 class ExpenseSplitCreate(BaseModel):
     expense_id: int

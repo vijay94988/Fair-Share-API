@@ -1,6 +1,5 @@
 from fastapi import APIRouter, HTTPException, status
 from psycopg.errors import UniqueViolation
-from psycopg.rows import dict_row
 
 from app.database import my_pool
 from app.models.schemas import ExpenseCreate
@@ -9,14 +8,14 @@ router = APIRouter()
 
 @router.get("/expenses")
 def get_expenses():
-    with my_pool.connection() as conn, conn.cursor(row_factory=dict_row) as cursor:
+    with my_pool.connection() as conn, conn.cursor() as cursor:
             cursor.execute("SELECT * FROM expenses;")
             expenses = cursor.fetchall()
             return {"Expenses": expenses}
 
 @router.get("/expenses/{id}")
 def get_expense(id: int):
-    with my_pool.connection() as conn, conn.cursor(row_factory=dict_row) as cursor:
+    with my_pool.connection() as conn, conn.cursor() as cursor:
             cursor.execute("SELECT * FROM expenses WHERE id = %s", (id,))
             expense = cursor.fetchone()
             if not expense:
@@ -26,7 +25,7 @@ def get_expense(id: int):
 
 @router.post("/expenses", status_code=status.HTTP_201_CREATED)
 def create_expense(expense:ExpenseCreate):
-    with my_pool.connection() as conn, conn.cursor(row_factory=dict_row) as cursor:
+    with my_pool.connection() as conn, conn.cursor() as cursor:
             # Checking if group exists
             cursor.execute("SELECT 1 FROM groups WHERE id = %s",
             (expense.group_id,))
@@ -39,6 +38,7 @@ def create_expense(expense:ExpenseCreate):
             if not cursor.fetchone():
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
+
             cursor.execute(
                 "INSERT INTO expenses(group_id, description, total_amount, created_by) VALUES (%s, %s, %s, %s) RETURNING *",
                 (expense.group_id, expense.description, expense.total_amount, expense.created_by)
@@ -48,7 +48,7 @@ def create_expense(expense:ExpenseCreate):
 
 @router.put("/expenses/{id}")
 def update_expense(id: int, expense:ExpenseCreate):
-    with my_pool.connection() as conn, conn.cursor(row_factory=dict_row) as cursor:
+    with my_pool.connection() as conn, conn.cursor() as cursor:
             cursor.execute(
                 "UPDATE expenses SET group_id = %s, description = %s, total_amount = %s, created_by = %s WHERE id = %s RETURNING *",
                 (expense.group_id, expense.description, expense.total_amount, expense.created_by, id)
@@ -63,7 +63,7 @@ def update_expense(id: int, expense:ExpenseCreate):
 
 @router.delete("/expenses/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_expense(id: int):
-    with my_pool.connection() as conn, conn.cursor(row_factory=dict_row) as cursor:
+    with my_pool.connection() as conn, conn.cursor() as cursor:
             cursor.execute(
                 "DELETE FROM expenses WHERE id = %s RETURNING id",
                 (id,)

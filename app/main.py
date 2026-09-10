@@ -21,10 +21,8 @@ app.include_router(expense_payers.router)
 app.include_router(settle_ups.router)
 
 
-
-
 @app.get("/")
 def root():
-    return {"Message": "Fair Share API Is Running"}
+    return {"Message": "Fair Share API is Running"}
 
 

@@ -9,7 +9,7 @@ router = APIRouter()
 
 @router.get("/groups")
 def get_groups():
-    with my_pool.connection() as conn, conn.cursor(row_factory=dict_row) as cursor:
+    with my_pool.connection() as conn, conn.cursor() as cursor:
             cursor.execute("SELECT * FROM groups;")
             groups = cursor.fetchall()
             return {"Groups": groups}
@@ -17,7 +17,7 @@ def get_groups():
 
 @router.get("/groups/{id}")
 def get_group(id: int):
-    with my_pool.connection() as conn, conn.cursor(row_factory=dict_row) as cursor:
+    with my_pool.connection() as conn, conn.cursor() as cursor:
             cursor.execute("SELECT * FROM groups WHERE id = %s", (id,))
             group = cursor.fetchone()
             if not group:
@@ -27,7 +27,7 @@ def get_group(id: int):
 
 @router.post("/groups", status_code= status.HTTP_201_CREATED)
 def create_group(group: GroupCreate):
-    with my_pool.connection() as conn, conn.cursor(row_factory=dict_row) as cursor:
+    with my_pool.connection() as conn, conn.cursor() as cursor:
             try:
                 cursor.execute(
                     "INSERT INTO groups (group_name, created_by) VALUES (%s, %s) RETURNING *",
@@ -41,7 +41,7 @@ def create_group(group: GroupCreate):
 
 @router.put("/groups/{id}")
 def update_group(id: int, group: GroupCreate):
-    with my_pool.connection() as conn, conn.cursor(row_factory=dict_row) as cursor:
+    with my_pool.connection() as conn, conn.cursor() as cursor:
             cursor.execute(
                 "UPDATE groups SET group_name = %s WHERE id = %s RETURNING *",
                 (group.group_name, id)
@@ -56,7 +56,7 @@ def update_group(id: int, group: GroupCreate):
 
 @router.delete("/groups/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_group(id: int):
-    with my_pool.connection() as conn, conn.cursor(row_factory=dict_row) as cursor:
+    with my_pool.connection() as conn, conn.cursor() as cursor:
             cursor.execute(
                 "DELETE FROM groups WHERE id = %s RETURNING id",
                 (id,)
