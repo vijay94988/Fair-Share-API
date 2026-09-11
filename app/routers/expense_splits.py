@@ -2,7 +2,6 @@ from fastapi import APIRouter, HTTPException, status
 from psycopg.errors import UniqueViolation
 
 from app.database import my_pool
-from app.models.schemas import ExpenseSplitCreate
 
 router = APIRouter()
 
@@ -21,12 +20,3 @@ def get_split(id: int):
             if not split:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Split not found")
             return split
-
-
-@router.post("/expense_splits", status_code=status.HTTP_201_CREATED)
-def create_split(split:ExpenseSplitCreate):
-    with my_pool.connection() as conn, conn.cursor() as cursor:
-        cursor.execute(
-            ""
-        )
-

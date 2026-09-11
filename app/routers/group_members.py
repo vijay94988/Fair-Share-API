@@ -1,6 +1,5 @@
 from fastapi import APIRouter, HTTPException, status
 from psycopg.errors import UniqueViolation
-from psycopg.rows import dict_row
 
 from app.database import my_pool
 from app.models.schemas import GroupMemberCreate

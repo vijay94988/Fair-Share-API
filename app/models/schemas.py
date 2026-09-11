@@ -1,3 +1,4 @@
+from decimal import Decimal
 from pydantic import BaseModel, EmailStr
 
 
@@ -16,31 +17,35 @@ class GroupMemberCreate(BaseModel):
     user_id: int
 
 
+class PayerInput(BaseModel):
+    user_id: int
+    amount_paid: Decimal
+
 class ExpenseCreate(BaseModel):
     group_id: int
     description: str
-    total_amount: int
+    total_amount: Decimal
     created_by: int
 
-class PayerInput(BaseModel):
-    user_id: int
-    amount_paid: int
-
-
-class ExpenseSplitCreate(BaseModel):
-    expense_id: int
-    user_id: int
-    amount_owed: int
+    participants: list[int]
+    payers: list[PayerInput]
 
 
 class ExpensePayerCreate(BaseModel):
     expense_id: int
     user_id: int
-    amount_paid: int
+    amount_paid: Decimal
+
+
+class ExpenseSplitCreate(BaseModel):
+    expense_id: int
+    user_id: int
+    amount_owed: Decimal
 
 
 class SettleUpCreate(BaseModel):
     group_id: int
-    paid_by: int
-    paid_to: int
-    amount: int
+    from_user_id: int
+    to_user_id: int
+    amount: Decimal
+
