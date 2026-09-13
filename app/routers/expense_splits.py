@@ -16,7 +16,7 @@ def get_expense_splits():
 def get_split(id: int):
     with my_pool.connection() as conn, conn.cursor() as cursor:
             cursor.execute("SELECT * FROM expense_splits WHERE expense_id = %s", (id,))
-            split = cursor.fetchone()
+            split = cursor.fetchall()
             if not split:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Split not found")
             return split

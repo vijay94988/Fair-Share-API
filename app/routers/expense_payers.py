@@ -17,7 +17,7 @@ def get_expense_payers():
 def get_payer(id: int):
     with my_pool.connection() as conn, conn.cursor() as cursor:
             cursor.execute("SELECT * FROM expense_payers WHERE expense_id = %s", (id,))
-            payer = cursor.fetchone()
+            payer = cursor.fetchall()
             if not payer:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Payer not found")
             return payer

@@ -63,4 +63,3 @@ def delete_group(id: int):
             deleted_group = cursor.fetchone()
             if not deleted_group:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Group ID not found")
-

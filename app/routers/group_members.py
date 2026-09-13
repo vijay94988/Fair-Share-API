@@ -17,7 +17,7 @@ def get_group_members():
 def get_member(id: int):
     with my_pool.connection() as conn, conn.cursor() as cursor:
             cursor.execute("SELECT * FROM group_members WHERE group_id = %s", (id,))
-            member = cursor.fetchone()
+            member = cursor.fetchall()
             if not member:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Group member not found")
             return member
