@@ -10,7 +10,7 @@ def get_group_balances(group_id: int):
     with my_pool.connection() as conn, conn.cursor() as cursor:
         cursor.execute("SELECT 1 FROM groups WHERE id = %s", (group_id,))
         if not cursor.fetchone():
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Group not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Group not found")
 
         cursor.execute(
             """

@@ -11,8 +11,14 @@ from app.routers import (
     users,
 )
 
-app = FastAPI()
+app = FastAPI(title="Fair-Share-API",
+              description="Backend API for Fair Share expense tracking application",
+              version="1.0.0",
+              docs_url="/docs",
+              redoc_url="/redoc")
 
+
+# Routers
 app.include_router(users.router)
 app.include_router(groups.router)
 app.include_router(balances.router)
@@ -26,4 +32,3 @@ app.include_router(settle_ups.router)
 @app.get("/")
 def root():
     return {"Message": "Fair Share API is Running"}
-
