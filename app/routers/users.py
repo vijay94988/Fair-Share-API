@@ -1,8 +1,7 @@
-from fastapi import APIRouter, HTTPException, status
-from fastapi.params import Depends
+from fastapi import APIRouter,Depends, HTTPException, status
 from psycopg.errors import UniqueViolation
 
-from app.database import my_pool, get_db_cursor
+from app.dependencies import get_db_cursor
 from app.models.schemas import UserCreate
 
 router = APIRouter()
