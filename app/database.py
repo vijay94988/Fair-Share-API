@@ -10,5 +10,5 @@ my_pool = ConnectionPool(
         min_size=3,
         max_size=8,
         timeout=10,
-        kwargs={"row_factory": dict_row}
+        kwargs={"row_factory": dict_row }
 )

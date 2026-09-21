@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-
+from app.database import my_pool
 from app.dependencies import get_db_cursor
 from app.models.schemas import ExpenseCreate
 
@@ -23,49 +23,56 @@ def get_expense(id: int, cursor=Depends(get_db_cursor)):
 
 @router.post("/expenses", status_code=status.HTTP_201_CREATED)
 def create_expense(expense: ExpenseCreate, cursor=Depends(get_db_cursor)):
-    k = expense.participants
-    if list(set(k)) != k:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Participants must be unique")
+    participants = expense.participants
 
-    if len(expense.participants) == 0:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Participants are empty")
-    with my_pool.connection() as conn, conn.cursor() as cursor:
-        # Validation Checks
-        cursor.execute("SELECT 1 FROM groups WHERE id = %s", (expense.group_id,))
-        if not cursor.fetchone():
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Group not found")
+    if len(set(participants)) != len(participants):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Participants must be unique")
 
-        cursor.execute("SELECT 1 FROM users WHERE id = %s", (expense.created_by,))
-        if not cursor.fetchone():
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User not found")
+    if not participants:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Participants are empty")
 
+    # Validation Checks
+    cursor.execute("SELECT 1 FROM groups WHERE id = %s", (expense.group_id,))
+    if not cursor.fetchone():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Group not found")
 
-        cursor.execute(
-            "INSERT INTO expenses(group_id, description, total_amount, created_by) VALUES (%s, %s, %s, %s) RETURNING *",
-            (
-                expense.group_id,
-                expense.description,
-                expense.total_amount,
-                expense.created_by)
-        )
-        expense_data = cursor.fetchone()
+    cursor.execute("SELECT 1 FROM users WHERE id = %s", (expense.created_by,))
+    if not cursor.fetchone():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User not found")
 
-        expense_id = expense_data["id"]
+    cursor.execute(
+        "INSERT INTO expenses(group_id, description, total_amount, created_by) VALUES (%s, %s, %s, %s) RETURNING id",
+        (
+            expense.group_id,
+            expense.description,
+            expense.total_amount,
+            expense.created_by)
+    )
+    expense_id = cursor.fetchone()["id"]
 
-        # Inserting Payers
-        for payer in expense.payers:
-            cursor.execute("INSERT INTO expense_payers (expense_id, user_id, amount_paid) VALUES (%s, %s, %s) RETURNING *",
-                        (expense_id, payer.user_id, payer.amount_paid))
+    for payer in expense.payers:
+        cursor.execute("INSERT INTO expense_payers (expense_id, user_id, amount_paid) VALUES (%s, %s, %s) RETURNING *",
+                       (expense_id, payer.user_id, payer.amount_paid))
 
-        # Calculation and Inserting Splits
-        participant_count = len(expense.participants)
-        share = expense.total_amount / participant_count
+    share = expense.total_amount / len(participants)
 
-        for participant in expense.participants:
-            cursor.execute("INSERT INTO expense_splits(expense_id, user_id, amount_owed) VALUES (%s, %s, %s) RETURNING *",
-                            (expense_id, participant, share))
+    for participant_id in expense.participants:
+        cursor.execute("INSERT INTO expense_splits(expense_id, user_id, amount_owed) VALUES (%s, %s, %s) RETURNING *",
+                       (expense_id, participant_id, share))
 
-        return {"Expense_ID": expense_id, "Message": "Expense Created Successfully"}
+    return {
+        "Expense_ID": expense_id,
+        "Message": "Expense created successfully"
+    }
+
 
 @router.put("/expenses/{id}")
 def update_expense(id: int, expense:ExpenseCreate, cursor=Depends(get_db_cursor)):
@@ -76,7 +83,7 @@ def update_expense(id: int, expense:ExpenseCreate, cursor=Depends(get_db_cursor)
     updated_expense = cursor.fetchone()
     if not updated_expense:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Expense ID not found")
-            
+
     print({"Message": "Expense Updated"})
     return updated_expense
 

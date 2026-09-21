@@ -1,7 +1,7 @@
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 from psycopg import OperationalError
 from psycopg_pool import PoolClosed, PoolTimeout
@@ -49,9 +49,9 @@ async def database_unavailable_handler(request: Request, exc: Exception):
         exc,
     )
     return JSONResponse(
-        status_code=503,
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
         content={"detail": "Database is temporarily unavailable. Please try again later."},
-        headers={"Retry-After(s)": "10"},
+        headers={"Retry-After": "10"}
     )
 
 
