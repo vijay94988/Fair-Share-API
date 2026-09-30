@@ -16,8 +16,5 @@ venv/
 
 #Environments:
 .env
-.env.*
 
-ProjectPlanning.md
-Project_Progress.md
-fairshare_plan.md
+

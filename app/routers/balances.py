@@ -27,22 +27,42 @@ def get_group_balances(group_id: int):
                 JOIN expense_splits ON expense_splits.expense_id = expenses.id
                 WHERE expenses.group_id = %s
                 GROUP BY expense_splits.user_id
+            ),
+            sent_by_user AS (
+                SELECT from_user_id AS user_id, SUM(amount) AS total_sent
+                FROM settle_ups
+                WHERE group_id = %s
+                GROUP BY from_user_id
+            ),
+            received_by_user AS (
+                SELECT to_user_id AS user_id, SUM(amount) AS total_received
+                FROM settle_ups
+                WHERE group_id = %s
+                GROUP BY to_user_id
             )
             SELECT
                 group_members.user_id,
                 COALESCE(paid_by_user.total_paid, 0) AS total_paid,
-                COALESCE(owed_by_user.total_owed, 0) AS total_owed
+                COALESCE(owed_by_user.total_owed, 0) AS total_owed,
+                COALESCE(sent_by_user.total_sent, 0) AS total_sent,
+                COALESCE(received_by_user.total_received, 0) AS total_received,
+                (
+                    COALESCE(paid_by_user.total_paid, 0)
+                    - COALESCE(owed_by_user.total_owed, 0)
+                    + COALESCE(sent_by_user.total_sent, 0)
+                    - COALESCE(received_by_user.total_received, 0)
+                ) AS balance
             FROM group_members
             LEFT JOIN paid_by_user ON paid_by_user.user_id = group_members.user_id
             LEFT JOIN owed_by_user ON owed_by_user.user_id = group_members.user_id
+            LEFT JOIN sent_by_user ON sent_by_user.user_id = group_members.user_id
+            LEFT JOIN received_by_user ON received_by_user.user_id = group_members.user_id
             WHERE group_members.group_id = %s
             ORDER BY group_members.user_id
             """,
-            (group_id, group_id, group_id),
+            (group_id, group_id, group_id, group_id, group_id),
         )
         balances = cursor.fetchall()
 
-    for balance in balances:
-        balance["balance"] = balance["total_paid"] - balance["total_owed"]
-
     return {"group_id": group_id, "balances": balances}
+
